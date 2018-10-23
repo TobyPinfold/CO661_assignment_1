@@ -500,7 +500,7 @@ public class TestSuite {
 
     public static void main(String[] args) {
 
-        System.out.println("CO661 - Assessment 1 - Test Suite v1.1");
+        System.out.println("CO661 - Assessment 1 - Test Suite v1.2");
         // First string provides that name of your FileServer class
         if (args.length < 1) {
             System.out.println("Please pass the name of your FileServer class as an argument");
@@ -575,13 +575,13 @@ public class TestSuite {
     }
 
     // Messages
-    public void success() {
+    public synchronized void success() {
         this.passedTests++;
         this.prevTestFailed = false;
         System.out.print(".");
     }
 
-    public void failure(String msg) {
+    public synchronized void failure(String msg) {
         if (!this.prevTestFailed) {
             System.out.print("\n");
         }
@@ -591,7 +591,7 @@ public class TestSuite {
     }
 
     // Assertion boilerplate
-    public void assertEquals(String s1, String s2) {
+    public synchronized void assertEquals(String s1, String s2) {
         if (s1 == s2) {
             success();
         } else {
@@ -601,7 +601,7 @@ public class TestSuite {
     }
 
     // Assertion boilerplate
-    public void assertEquals(String[] s1, String[] s2) {
+    public synchronized void assertEquals(String[] s1, String[] s2) {
         boolean eq = (s1.length == s2.length);
         for (int i = 0; i < s1.length; i++) {
             eq = eq & (s1[i] == s2[i]);
@@ -614,7 +614,7 @@ public class TestSuite {
         this.testCount++;
     }
 
-    public void assertEquals(int s1, int s2) {
+    public synchronized void assertEquals(int s1, int s2) {
         if (s1 == s2) {
             success();
         } else {
@@ -623,7 +623,7 @@ public class TestSuite {
         this.testCount++;
     }
 
-    public void assertEquals(boolean s1, boolean s2) {
+    public synchronized void assertEquals(boolean s1, boolean s2) {
         if (s1 == s2) {
             success();
         } else {
@@ -632,7 +632,7 @@ public class TestSuite {
         this.testCount++;
     }
 
-    public void assertEquals(Mode s1, Mode s2) {
+    public synchronized void assertEquals(Mode s1, Mode s2) {
         if (s1 == s2) {
             success();
         } else {
@@ -641,7 +641,7 @@ public class TestSuite {
         this.testCount++;
     }
 
-    public void assertEquals(Thread.State s1, Thread.State s2) {
+    public synchronized void assertEquals(Thread.State s1, Thread.State s2) {
         if (s1 == s2) {
             success();
         } else {
