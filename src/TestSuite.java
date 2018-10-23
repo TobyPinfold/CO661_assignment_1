@@ -1,7 +1,5 @@
 import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
 import java.util.Optional;
-import java.lang.Thread.State;
 import java.util.concurrent.Semaphore;
 
 public class TestSuite {
@@ -31,21 +29,21 @@ public class TestSuite {
         // Step
         it("One available file. Successful creation");
         fs.create("a", "hello");
-        assertEquals(fs.availableFiles().toArray(new String[0]), new String[] {"a"});
+        assertEquals(fs.availableFiles().toArray(new String[0]), new String[]{"a"});
         it("Initially closed file");
         assertEquals(fs.fileStatus("a"), Mode.CLOSED);
 
         // Step step
         it("Two available files");
         fs.create("b", "hello2");
-        assertEquals(fs.availableFiles().toArray(new String[0]), new String[] {"a", "b"});
+        assertEquals(fs.availableFiles().toArray(new String[0]), new String[]{"a", "b"});
 
         it("Unknown file status");
         assertEquals(fs.fileStatus("c"), Mode.UNKNOWN);
 
         it("Opening a file (read) keeps the same available files");
         Optional<File> of = fs.open("a", Mode.READABLE);
-        assertEquals(fs.availableFiles().toArray(new String[0]), new String[] {"a", "b"});
+        assertEquals(fs.availableFiles().toArray(new String[0]), new String[]{"a", "b"});
 
         fs.close(of.get());
         it("File still avilable after closing");
@@ -53,7 +51,7 @@ public class TestSuite {
 
         it("Opening a file (write) keeps the same available files");
         fs.open("a", Mode.READWRITEABLE);
-        assertEquals(fs.availableFiles().toArray(new String[0]), new String[] {"a", "b"});
+        assertEquals(fs.availableFiles().toArray(new String[0]), new String[]{"a", "b"});
     }
 
     public void testSingleThread() {
@@ -217,7 +215,9 @@ public class TestSuite {
             t1.join(300);
             t2.join(300);
             t3.join(300);
-        } catch (InterruptedException e) { assertEquals(false, true); }
+        } catch (InterruptedException e) {
+            assertEquals(false, true);
+        }
         it("Multiple read is allowed with no blocking (thread 1)");
         assertEquals(t1.getState(), Thread.State.TERMINATED);
 
@@ -276,7 +276,9 @@ public class TestSuite {
                 wt1.start();
                 try {
                     wt1.join(500);
-                } catch (InterruptedException e) { failure("Interrupt"); }
+                } catch (InterruptedException e) {
+                    failure("Interrupt");
+                }
                 // Detect that the thread is blocked
                 it("File open for reading; another process trying to open it for writing is blocked");
                 assertEquals(wt1.getState(), Thread.State.WAITING);
@@ -288,7 +290,9 @@ public class TestSuite {
 
                 try {
                     wt1.join(500);
-                } catch (InterruptedException e) { failure("Interrupt"); }
+                } catch (InterruptedException e) {
+                    failure("Interrupt");
+                }
 
                 it("Successfuly unblocked writing process");
                 assertEquals(wt1.getState(), Thread.State.TERMINATED);
@@ -298,7 +302,9 @@ public class TestSuite {
 
         try {
             main.join(1000);
-        } catch (InterruptedException e) { failure("Interrupt"); }
+        } catch (InterruptedException e) {
+            failure("Interrupt");
+        }
 
         it("Successfuly closed files after blocking interaction");
         assertEquals(main.getState(), Thread.State.TERMINATED);
@@ -377,7 +383,9 @@ public class TestSuite {
         // Wait and check that it succesfully opened
         try {
             sub1.join(500);
-        } catch (InterruptedException e) { failure("Interrupt"); }
+        } catch (InterruptedException e) {
+            failure("Interrupt");
+        }
         it("Another process trying to read whilst another writes gets blocked. Successful open and read.");
         assertEquals(doneOpen.flag, true);
 
@@ -397,7 +405,9 @@ public class TestSuite {
         sub2.start();
         try {
             sub2.join(500);
-        } catch (InterruptedException e) { failure("Interrupt"); }
+        } catch (InterruptedException e) {
+            failure("Interrupt");
+        }
 
         // Detect that the thread is blocked
         assertEquals(sub2.getState(), Thread.State.WAITING);
@@ -447,7 +457,9 @@ public class TestSuite {
         // Let a bit of time elapse to allow the thread to get blocked
         try {
             sub3.join(500);
-        } catch (InterruptedException e) { failure("Interrupt"); }
+        } catch (InterruptedException e) {
+            failure("Interrupt");
+        }
         // Detect block
         it("Another process trying to write whilst another writes gets blocked");
         assertEquals(sub3.getState(), Thread.State.WAITING);
@@ -458,14 +470,18 @@ public class TestSuite {
         // Let a bit of time elapse to allow the thread to get unblocked
         try {
             sub3.join(500);
-        } catch (InterruptedException e) { failure("Interrupt");  }
+        } catch (InterruptedException e) {
+            failure("Interrupt");
+        }
         // Detect block
         it("Second write attempt was indeed unblocked");
         assertEquals(sub3.getState(), Thread.State.TERMINATED);
 
         try {
             sub2.join(500);
-        } catch (InterruptedException e) { failure("Interrupt"); }
+        } catch (InterruptedException e) {
+            failure("Interrupt");
+        }
 
         // Detect that the thread 2 was unblocked eventually
         it("Blocked reader thread was eventually unblocked");
@@ -557,7 +573,7 @@ public class TestSuite {
         System.out.println("Running tests.");
         tests();
         System.out.println("\n" + ANSI_BLUE + "Tests: " + testCount + ANSI_RESET);
-        System.out.println(ANSI_GREEN + "Passed: " + passedTests +  ANSI_RESET);
+        System.out.println(ANSI_GREEN + "Passed: " + passedTests + ANSI_RESET);
         if (passedTests == testCount) {
             System.out.println("\nOk.");
         } else {
@@ -578,14 +594,15 @@ public class TestSuite {
     public synchronized void success() {
         this.passedTests++;
         this.prevTestFailed = false;
-        System.out.print(".");
+        System.out.println(currentTestName + ANSI_GREEN + " SUCCESS\n" + ANSI_RESET);
     }
 
     public synchronized void failure(String msg) {
         if (!this.prevTestFailed) {
             System.out.print("\n");
         }
-        System.out.println(ANSI_RED + currentTestName + ".\n\tFailed: " + msg + "\n" + ANSI_RESET);
+        System.out.println(currentTestName + ANSI_RED + " FAILED" + ANSI_RESET);
+        System.out.println(ANSI_RED + "\tFailed: " + msg + "\n" + ANSI_RESET);
         this.prevTestFailed = true;
 
     }
