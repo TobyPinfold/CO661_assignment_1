@@ -36,7 +36,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public class SharedFileServer implements FileServer {
 
     private ConcurrentHashMap<String, File> files;
-    private ConcurrentHashMap<String, ReentrantReadWriteLock> locks;
+    private ConcurrentHashMap<String, FileLock> locks;
 
     public SharedFileServer() {
         this.files = new ConcurrentHashMap<>();
@@ -129,14 +129,22 @@ public class SharedFileServer implements FileServer {
 
     private void lockFile(String filename, Mode mode) {
         if (locks.containsKey(filename)) {
-            ReentrantReadWriteLock lock = locks.get(filename);
+            FileLock lock = locks.get(filename);
 
             switch (mode) {
                 case READWRITEABLE:
-                    lock.writeLock().lock();
+                    try {
+                        lock.acquireWriteLock();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                     break;
                 case READABLE:
-                    lock.readLock().lock();
+                    try {
+                        lock.acquireReadLock();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                     break;
             }
 
@@ -147,14 +155,22 @@ public class SharedFileServer implements FileServer {
 
     private void unlockFile(String filename, Mode mode) {
         if (locks.containsKey(filename)) {
-            ReentrantReadWriteLock lock = locks.get(filename);
+            FileLock lock = locks.get(filename);
 
             switch (mode) {
                 case READWRITEABLE:
-                    lock.writeLock().unlock();
+                    try {
+                        lock.releaseWriteLock();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                     break;
                 case READABLE:
-                    lock.readLock().unlock();
+                    try {
+                        lock.releaseReadLock();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                     break;
             }
 
@@ -164,7 +180,7 @@ public class SharedFileServer implements FileServer {
     }
 
     private void createLock(String filename) {
-        ReentrantReadWriteLock lock = new ReentrantReadWriteLock(true);
+        FileLock lock = new FileLock();
         locks.put(filename, lock);
     }
 
@@ -173,6 +189,4 @@ public class SharedFileServer implements FileServer {
         File newFile = new File(file.filename(), file.read(), targetMode);
         files.put(file.filename(), newFile);
     }
-
-
 }
