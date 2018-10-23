@@ -37,8 +37,11 @@ public class FileLock
      */
     public synchronized void releaseReadLock() throws Exception {
         try {
-
-
+            this.readLock.release();
+            if(waitQueue.size() > 0) {
+                Thread longestWaitingThread = waitQueue.get(0);
+                longestWaitingThread.notify();
+            }
         } catch (Exception e) {
             System.out.println(e);
         }
@@ -67,13 +70,15 @@ public class FileLock
      */
     public synchronized void releaseWriteLock() throws Exception {
         try {
-            if(readLock.)
-
+          this.writeLock.release();
+          if(waitQueue.size() > 0) {
+           Thread longestWaitingThread = waitQueue.get(0);
+           longestWaitingThread.notify();
+          }
         } catch (Exception e) {
             System.out.println(e);
         }
     }
-
 
     private void addCurrentlyRunningThreadToWaitQueue() {
         Thread theCurrentlyRunningThread = Thread.currentThread();
