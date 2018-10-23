@@ -1,5 +1,5 @@
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.concurrent.Semaphore;
 
 public class FileLock
@@ -11,41 +11,26 @@ public class FileLock
     }
     private Semaphore writeLock = new Semaphore(1, ensureFairnessIsTrue);
     private Semaphore readLock = new Semaphore(Integer.MAX_VALUE, ensureFairnessIsTrue);
-    private LinkedHashMap<Action, Thread> waitQueue = new LinkedHashMap<>();
+    private ArrayList<HashMap<Action, Thread>> waitQueue = new ArrayList<>();
+    int counter = 0;
 
     /**
      * Acquire Read Lock
      */
-    public synchronized void acquireReadLock() throws Exception {
-        try {
-            int numberOfAcquiredReadLocks = getReadLockCount();
-            boolean fileIsNotBeingRead = numberOfAcquiredReadLocks <= 0;
-            boolean fileIsNotBeingWritten = writeLock.availablePermits() > 0;
+    public void acquireReadLock() throws Exception {
+        synchronized (readLock) {
+            try {
 
-            if(fileIsNotBeingRead && fileIsNotBeingWritten) {
-                readLock.acquire(1);
-            } else {
-                readLock.wait();
-                addCurrentlyRunningThreadToWaitQueue(Action.READ);
+                if (isWriteLocked()) {
+                    addCurrentlyRunningThreadToWaitQueue(Action.READ);
+                    readLock.wait();
+                }
+            } catch (Exception e) {
+                System.out.println(e + " ( " + Thread.currentThread().getName() + " )");
+                e.printStackTrace();
+            } finally {
+                readLock.acquire();
             }
-        } catch (Exception e) {
-            System.out.println(e);
-        }
-    }
-
-    /**
-     * Release Read Lock
-     */
-    public synchronized void releaseReadLock() throws Exception {
-        try {
-            System.out.println(Integer.MAX_VALUE - readLock.availablePermits());
-            this.readLock.release(1);
-            if(waitQueue.size() > 0) {
-                Thread longestWaitingThread = waitQueue.get(0);
-                longestWaitingThread.notify();
-            }
-        } catch (Exception e) {
-            System.out.println(e);
         }
     }
 
@@ -53,55 +38,99 @@ public class FileLock
      * Acquire Write Lock
      */
 
-    public synchronized void acquireWriteLock() throws Exception {
-        try {
-            int numberOfAquiredWriteLocks = writeLock.availablePermits() - 1;
-            if(numberOfAquiredWriteLocks <= 0) {
-                writeLock.acquire(1);
-            } else {
-                writeLock.wait();
-                addCurrentlyRunningThreadToWaitQueue(Action.WRITE);
+    public void acquireWriteLock() throws Exception {
+        synchronized (writeLock) {
+            try {
+                synchronized (writeLock) {
+                    if (isWriteLocked() || isReadLocked()) {
+                        addCurrentlyRunningThreadToWaitQueue(Action.READ);
+                        Thread.currentThread().wait();
+                    }
+                }
+            } catch (Exception e) {
+                System.out.println(e + " ( " + Thread.currentThread().getName() + " )");
+                e.printStackTrace();
+            } finally {
+
+                writeLock.acquire();
             }
-        } catch (Exception e) {
-            System.out.println(e);
         }
     }
+
+
+    /**
+     * Release Read Lock
+     */
+    public void releaseReadLock() throws Exception {
+        synchronized(readLock) {
+            try {
+                readLock.release();
+                notifyOldestWaitingThread();
+            } catch (Exception e) {
+                System.out.println(e + " ( " + Thread.currentThread().getName() + " )");
+                e.printStackTrace();
+            }
+        }
+    }
+
 
     /**
      * Release Write Lock
      */
     public synchronized void releaseWriteLock() throws Exception {
         try {
-          this.writeLock.release(1);
-          if(waitQueue.size() > 0) {
-           Thread longestWaitingThread = waitQueue.get(0);
-           longestWaitingThread.notify();
-          }
+            writeLock.release();
+            notifyOldestWaitingThread();
         } catch (Exception e) {
-            System.out.println(e);
+            System.out.println(e + " ( "  + Thread.currentThread().getName() + " )");
+            e.printStackTrace();
         }
     }
 
-    public synchronized boolean isWriteLocked() {
+    public boolean isWriteLocked() {
         return this.writeLock.availablePermits() <= 0;
     }
 
+    public boolean isReadLocked() {
+        return Integer.MAX_VALUE - readLock.availablePermits() > 0;
+    }
 
-    public synchronized int getReadLockCount() {
+
+    public int getReadLockCount() {
         return Integer.MAX_VALUE - readLock.availablePermits();
     }
 
-    private void addCurrentlyRunningThreadToWaitQueue(Action requestedAction) {
-        Thread theCurrentlyRunningThread = Thread.currentThread();
-        waitQueue.put(requestedAction, theCurrentlyRunningThread);
+    private synchronized void addCurrentlyRunningThreadToWaitQueue(Action requestedAction) {
+        HashMap<Action, Thread> waitingThread = new HashMap<>();
+
+        waitingThread.put(requestedAction, Thread.currentThread());
+
+        waitQueue.add(waitingThread);
     }
 
     private void notifyOldestWaitingThread() {
         if(!waitQueue.isEmpty()) {
-//            waitQueue.
-//            Thread oldestWaitingThread = waitQueue.get(0);
-//            oldestWaitingThread.
+           HashMap<Action, Thread> waitingThread = waitQueue.get(0);
+           waitingThread.forEach((action, thread) -> {
+              switch (action) {
+                  case WRITE: if(!isReadLocked() && !isWriteLocked()) {
+                      synchronized (writeLock) {
+                          thread.notify();
+                          waitQueue.remove(0);
+                      }
+                  }
+                  break;
+                  case READ: if(!isWriteLocked()) {
+                      synchronized (readLock) {
+                          thread.notify();
+                          waitQueue.remove(0);
+                      }
+                  }
+                  break;
+              }
+
+
+           });
         }
     }
-
 }

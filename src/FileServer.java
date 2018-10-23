@@ -13,7 +13,7 @@ public interface FileServer {
 
   // Attempt to open a file -- may block if the file is not available at that mode
   // Returns an Optional.empty() if no such file exists
-	public Optional<File> open(String filename, Mode mode);
+  public Optional<File> open(String filename, Mode mode);
 
   // Close a file
   public void close(File file);
