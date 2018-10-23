@@ -2,7 +2,6 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**---------------------------------------------------------------------------------------------**
  *         ,-----.                                                                               *
@@ -14,22 +13,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  *                                                                                               *
  **---------------------------------------------------------------------------------------------**
  *                                                                                               *
- *  The Approach used here, utilises a locking system using the Java Provided                    *
- *  ReentrantReadWriteLock. The benefits of this Lock object is its ability to handle both       *
- *  read and writing locks as a single individual lock and automatically allows for multiple     *
- *  read access and individual write access. The fac that it is also a Reentrant lock allows     *
- *  us to initialise the Lock with fairness implemented with a simple constructor boolean        *
- *  parameter which solves the issues surrounding starvation as the longest waiting thread       *
- *  is given priority upon the lock being freed.                                                 *
  *                                                                                               *
- *  I utilised the Lock mentioned above to be referenced in a hashmap to its corresponding       *
- *  file. This subsequently meant each file had its own lock and could be locked individually.   *
- *  This meant multiple different files can be accessed at the same time without interference.   *
- *  With regard to reading the same file, the ReadWriteLock provided such functionality as to    *
- *  allow multiple read locks to be set on any given lock by other threads, while only allowing  *
- *  a single thread to have write access at any given time. By only allowing an individual file  *
- *  to be written to by one thread at any given time, it avoids race conditions and ensures      *
- *  mutual exclusion.                                                                            *
  *                                                                                               *
  **---------------------------------------------------------------------------------------------**/
 
@@ -86,20 +70,21 @@ public class SharedFileServer implements FileServer {
         if (files.get(filename) != null) {
 
             File file = files.get(filename);
-
+            System.out.println(file.filename());
             if (file.mode().equals(Mode.READABLE) || file.mode().equals(Mode.READWRITEABLE)) {
 
                 unlockFile(filename, file.mode());
 
-                if (file.mode().equals(Mode.READWRITEABLE) && locks.get(filename).getReadLockCount() > 0) {
+                if (file.mode().equals(Mode.READWRITEABLE) && locks.get(filename).getCurrentReadCount() > 0) {
                     manipulateModeOfFile(file, Mode.READABLE);
                 }
 
-                if ((file.mode().equals(Mode.READABLE) && locks.get(filename).getReadLockCount() < 1)) {
+                if ((file.mode().equals(Mode.READABLE) && locks.get(filename).getCurrentReadCount() < 1)) {
                     manipulateModeOfFile(file, Mode.CLOSED);
                 }
 
-                if ((file.mode().equals(Mode.READWRITEABLE) && !locks.get(filename).isWriteLocked() && locks.get(filename).getReadLockCount() <= 0)) {
+                if ((file.mode().equals(Mode.READWRITEABLE) && !locks.get(filename).isWriteSemaphoreLocked()
+                        && locks.get(filename).getCurrentReadCount() <= 0)) {
                     manipulateModeOfFile(file, Mode.CLOSED);
                 }
 

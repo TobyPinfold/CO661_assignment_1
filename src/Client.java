@@ -40,29 +40,49 @@ public class Client implements Runnable {
 
         Set<String> allFiles = fileServer.availableFiles();
         int run = 0;
-        while(run < 10) {
+        while(run < 100) {
             int randomNumber = ThreadLocalRandom.current().nextInt(allFiles.size());
 
             int index = 0;
+
+            boolean isWriting = ThreadLocalRandom.current().nextInt(3) == 3;
 
             Optional<File> selectedFile = Optional.empty();
 
             for (String filename : allFiles) {
                 if (index == randomNumber) {
                     System.out.println(clientName + " opening file: " + filename);
-                    selectedFile = fileServer.open(filename, Mode.READWRITEABLE);
+                    if(isWriting) {
+                        selectedFile = fileServer.open(filename, Mode.READWRITEABLE);
+                    } else {
+                        selectedFile = fileServer.open(filename, Mode.READABLE);
+                    }
                     break;
                 }
                 index++;
             }
 
-            if (selectedFile.isPresent()) {
-                File file = selectedFile.get();
-                System.out.println(clientName + " writing to file: " + file.filename());
-                file.write("Written by: " + this.clientName);
+            if(isWriting) {
+                if (selectedFile.isPresent()) {
+                    File file = selectedFile.get();
+                    System.out.println(clientName + " writing to file: " + file.filename());
+                    file.write("Written by: " + this.clientName);
 
-                System.out.println(clientName + " closing file: " + file.filename());
-                fileServer.close(file);
+                    System.out.println(clientName + " closing file: " + file.filename());
+                    fileServer.close(file);
+                }
+            } else {
+                if (selectedFile.isPresent()) {
+                    File file = selectedFile.get();
+                    try {
+                        System.out.println(clientName + " reading file: " + file.filename());
+                        Thread.sleep(ThreadLocalRandom.current().nextInt(2) * 1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    System.out.println(clientName + " closing file: " + file.filename());
+                    fileServer.close(file);
+                }
             }
 
             try {
