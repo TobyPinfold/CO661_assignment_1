@@ -1,3 +1,4 @@
+import java.nio.file.spi.FileSystemProvider;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -19,11 +20,10 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class SharedFileServer implements FileServer {
 
-    private ConcurrentHashMap<String, File> files;
+    private FileProvider fileProvider = FileProvider.getInstance();
     private ConcurrentHashMap<String, FileLock> locks;
 
     public SharedFileServer() {
-        this.files = new ConcurrentHashMap<>();
         this.locks = new ConcurrentHashMap<>();
     }
 
