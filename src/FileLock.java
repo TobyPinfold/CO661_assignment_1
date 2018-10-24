@@ -24,6 +24,7 @@ public class FileLock
         try {
             if (!isReadLocked() && !isWriting) {
                 writeSemaphore.acquire();
+                isWriting = true;
             } else {
                 synchronized (writeLock) {
                     writeLock.wait();
