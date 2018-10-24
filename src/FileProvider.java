@@ -1,13 +1,10 @@
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class FileProvider {
 
     ConcurrentHashMap<String, Mode> modeMap = new ConcurrentHashMap<>();
     ConcurrentHashMap<String, String> contentMap = new ConcurrentHashMap<>();
-
-
 
     public void setFileMode(String filename, Mode targetMode) {
         if(modeMap.containsKey(filename)) {
@@ -22,14 +19,6 @@ public class FileProvider {
             contentMap.replace(filename, content);
         } else {
             contentMap.put(filename, content);
-        }
-    }
-
-    public String getContent(String filename) {
-        if(contentMap.containsKey(filename)) {
-            return contentMap.get(filename);
-        } else {
-            return  "";
         }
     }
 

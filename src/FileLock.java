@@ -9,9 +9,7 @@ public class FileLock
     private Semaphore readSemaphore = new Semaphore(Integer.MAX_VALUE, ensureFairnessIsTrue);
     private boolean isWriting = false;
 
-    /**
-     * Acquire Read Lock
-     */
+
     public void acquireReadLock() throws Exception {
         if(!isWriteSemaphoreLocked()) {
             readSemaphore.acquire();
@@ -22,20 +20,12 @@ public class FileLock
         }
     }
 
-
-    /**
-     * Acquire Write Lock
-     */
-
     public void acquireWriteLock() throws Exception {
         try {
-            System.out.println(!isReadLocked() && !isWriting);
             if (!isReadLocked() && !isWriting) {
-                System.out.println("acquire");
                 writeSemaphore.acquire();
             } else {
                 synchronized (writeLock) {
-                    System.out.println("wait");
                     writeLock.wait();
                 }
             }
@@ -45,9 +35,6 @@ public class FileLock
     }
 
 
-    /**
-     * Release Read Lock
-     */
     public void releaseReadLock() throws Exception {
         try {
             if (getCurrentReadCount() <= 1) {
@@ -69,10 +56,7 @@ public class FileLock
         }
     }
 
-    /**
-     * Release Write Lock
-     */
-    public void releaseWriteLock() throws Exception {
+    public void releaseWriteLock() {
         try {
             if (writeSemaphore.getQueueLength() < 1) {
                 synchronized (readLock) {

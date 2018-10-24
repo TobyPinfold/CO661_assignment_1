@@ -1,29 +1,47 @@
-import java.nio.file.spi.FileSystemProvider;
-import java.util.HashSet;
+
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**---------------------------------------------------------------------------------------------**
- *         ,-----.                                                                               *
- *        '  .--./ ,---. ,--,--,  ,---.,--.,--.,--.--.,--.--. ,---. ,--,--,  ,---.,--. ,--.      *
- *        |  |    | .-. ||      \| .--'|  ||  ||  .--'|  .--'| .-. :|      \| .--' \  '  /       *
- *        '  '--'\' '-' '|  ||  |\ `--.'  ''  '|  |   |  |   \   --.|  ||  |\ `--.  \   '        *
- *         `-----' `---' `--''--' `---' `----' `--'   `--'    `----'`--''--' `---'.-'  /         *
- *                                Shared FileSystem Explanation                   `---'          *
- *                                                                                               *
- **---------------------------------------------------------------------------------------------**
- *                                                                                               *
- *                                                                                               *
- *                                                                                               *
- **---------------------------------------------------------------------------------------------**/
+/**-----------------------------------------------------------------------------------------------**
+ *         ,-----.                                                                                 *
+ *        '  .--./ ,---. ,--,--,  ,---.,--.,--.,--.--.,--.--. ,---. ,--,--,  ,---.,--. ,--.        *
+ *        |  |    | .-. ||      \| .--'|  ||  ||  .--'|  .--'| .-. :|      \| .--' \  '  /         *
+ *        '  '--'\' '-' '|  ||  |\ `--.'  ''  '|  |   |  |   \   --.|  ||  |\ `--.  \   '          *
+ *         `-----' `---' `--''--' `---' `----' `--'   `--'    `----'`--''--' `---'.-'  /           *
+ *                                  Shared FileSystem Explanation                 `---'            *
+ *                                                                                                 *
+ **-----------------------------------------------------------------------------------------------**
+ *                                                                                                 *
+ *  My Approach to this assignment, was to create a custom FileLock, that utilises synchronised    *
+ *  blocks and semaphores. Each action (READ, READWRITE) has its own semaphore and lock Object     *
+ *  The Semaphore is utilised to handle queued threads, whilst the lock object is used to          *
+ *  synchronise its related threads (same action) to manage which threads get told to wait         *
+ *  or be notified. While same requests are being received, ie (R, R, R, R) then they are all      *
+ *  added to the read semaphore. As soon as a different request is received ie (R,R,R,R,W) then    *
+ *  the requests are synchronised to the lock object and enter a wait state. This allows the       *
+ *  remaining (R) requests (blocked) to finish that entered before the (W) but will ensure the     *
+ *  (W) gets a change to write. Following the write, the unlock will determine whether to notify   *
+ *  the (R) lock  or to allow other (W) requests to execute.                                       *
+ *                                                                                                 *
+ *  To avoid race conditions, between read and write requests I ensure mutual exclusion by         *
+ *  synchronising on their respective lock objects I've created, this ensures only one request to  *
+ *  acquire or release a lock can happen at a given time. Provided I am also instantiating the     *
+ *  write semaphore with only 1 permit, it ensures only one write condition can execute at a time, *
+ *  ensuring Mutual exclusion for all write operations. The solution is not entirely fair, as it   *
+ *  is biased towards write conditions. The thinking here, being if you wanted to read, you would  *
+ *  want the most up to date version. Subsequently in the event there was a continuous stream of   *
+ *  (W) then it could starve an (R) until all (W) have finished. But given the probable desire to  *
+ *  read the latest version then that should be fine.                                              *
+ *                                                                                                 *
+ **-----------------------------------------------------------------------------------------------**/
 
-public class SharedFileServer implements FileServer {
+public class MyFileServer implements FileServer {
 
     private FileProvider fileProvider = new FileProvider();
     private ConcurrentHashMap<String, FileLock> locks;
 
-    public SharedFileServer() {
+    public MyFileServer() {
         this.locks = new ConcurrentHashMap<>();
     }
 
@@ -33,11 +51,8 @@ public class SharedFileServer implements FileServer {
 
             fileProvider.createFile(filename, content);
             if (!locks.containsKey(filename)) {
-                System.out.println("creating lock for file " + filename);
                 createLock(filename);
             }
-            System.out.println(locks);
-
         }
     }
 
@@ -61,8 +76,6 @@ public class SharedFileServer implements FileServer {
 
     @Override
     public void close(File closedFile) {
-
-        System.out.println("I READ: " + closedFile.read() );
         String filename = closedFile.filename();
 
         if (fileProvider.doesFileExist(filename)) {
@@ -71,9 +84,7 @@ public class SharedFileServer implements FileServer {
 
             if (file.mode().equals(Mode.READABLE) || file.mode().equals(Mode.READWRITEABLE)) {
 
-                System.out.println(locks);
                 unlockFile(filename, file.mode());
-                System.out.println(locks);
 
                 if (file.mode().equals(Mode.READWRITEABLE) && locks.get(filename).getCurrentReadCount() > 0) {
                     fileProvider.setContent(file.filename(), closedFile.read());
@@ -89,7 +100,6 @@ public class SharedFileServer implements FileServer {
                     fileProvider.setContent(file.filename(), closedFile.read());
                     fileProvider.setFileMode(file.filename(), Mode.CLOSED);
                 }
-
             }
         }
     }
@@ -107,8 +117,6 @@ public class SharedFileServer implements FileServer {
 
 
     private void lockFile(String filename, Mode mode) {
-        System.out.println("lockfile");
-
         if (locks.containsKey(filename)) {
             FileLock lock = locks.get(filename);
 
@@ -130,14 +138,10 @@ public class SharedFileServer implements FileServer {
             }
 
             locks.replace(filename, lock);
-            System.out.println(locks);
-
         }
     }
 
     private void unlockFile(String filename, Mode mode) {
-        System.out.println("unlockFile");
-
         if (locks.containsKey(filename)) {
             FileLock lock = locks.get(filename);
 
@@ -165,13 +169,5 @@ public class SharedFileServer implements FileServer {
     private void createLock(String filename) {
         FileLock lock = new FileLock();
         locks.put(filename, lock);
-        System.out.println(locks);
-
     }
-
-//    private void manipulateModeOfFile(File file, Mode targetMode) {
-//        files.remove(file.filename());
-//        File newFile = new File(file.filename(), file.read(), targetMode);
-//        files.put(file.filename(), newFile);
-//    }
 }

@@ -7,16 +7,20 @@ public class TestSuite {
     // **** Tests top-level ******************************************************
 
     public void tests() {
-        describe("Test file creation and listing");
-        testAvailableFiles();
+        int i = 0;
+        while(i < 5) {
+            describe("Test file creation and listing");
+            testAvailableFiles();
 
-        describe("Test single threaded open/read/write/close");
-        testSingleThread();
+            describe("Test single threaded open/read/write/close");
+            testSingleThread();
 
-        describe("Test multithreading locking");
-        testMultiThreadRead();
-        testMultiThread1();
-        testMultiThread2();
+            describe("Test multithreading locking");
+            testMultiThreadRead();
+            testMultiThread1();
+            testMultiThread2();
+            i++;
+        }
     }
 
 
@@ -360,14 +364,12 @@ public class TestSuite {
                     Optional<File> ofa1 = fs.open("a", Mode.READWRITEABLE);
                     File fa1 = ofa1.get();
                     it("Process with write mode of file succeeds in reading while blocking others");
-                    System.out.println("I READ: " + fa1.read() );
                     assertEquals(fa1.read(), "coheed");
                     doneOpen.flag = true;
 
                     // Wait
                     signaller.acquire();
                     fa1.write("claudio");
-                    System.out.println("I READ: " + fa1.read() );
                     // Set observable checkpoint in other thread
                     signal.flag = true;
                     // Triggers unblock

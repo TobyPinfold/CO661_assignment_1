@@ -5,12 +5,12 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class Client implements Runnable {
 
-    private SharedFileServer fileServer;
+    private MyFileServer fileServer;
     private String clientName;
 
     public static void main(String[] args) {
 
-        SharedFileServer fileServer = new SharedFileServer();
+        MyFileServer fileServer = new MyFileServer();
 
         for(int fileNumber = 0; fileNumber < 10; fileNumber++){
             double randomNumber = Math.random();
@@ -30,7 +30,7 @@ public class Client implements Runnable {
 
     }
 
-    public Client(SharedFileServer fileServer, String clientName) {
+    public Client(MyFileServer fileServer, String clientName) {
         this.fileServer = fileServer;
         this.clientName = clientName;
     }
