@@ -20,7 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class SharedFileServer implements FileServer {
 
-    private FileProvider fileProvider = FileProvider.getInstance();
+    private FileProvider fileProvider = new FileProvider();
     private ConcurrentHashMap<String, FileLock> locks;
 
     public SharedFileServer() {
@@ -29,14 +29,15 @@ public class SharedFileServer implements FileServer {
 
     @Override
     public void create(String filename, String content) {
-        if (!files.containsKey(filename)) {
+        if (!fileProvider.doesFileExist(filename)) {
 
-            File newFile = new File(filename, content, Mode.CLOSED);
-            files.put(filename, newFile);
-
+            fileProvider.createFile(filename, content);
             if (!locks.containsKey(filename)) {
+                System.out.println("creating lock for file " + filename);
                 createLock(filename);
             }
+            System.out.println(locks);
+
         }
     }
 
@@ -45,14 +46,10 @@ public class SharedFileServer implements FileServer {
     public Optional<File> open(String filename, Mode targetMode) {
         lockFile(filename, targetMode);
 
-        if (files.containsKey(filename) && !targetMode.equals(Mode.UNKNOWN) && !targetMode.equals(Mode.CLOSED)) {
+        if (fileProvider.doesFileExist(filename) && !targetMode.equals(Mode.UNKNOWN) && !targetMode.equals(Mode.CLOSED)) {
 
-            File file = files.get(filename);
-
-            manipulateModeOfFile(file, targetMode);
-
-            file = files.get(filename);
-
+            fileProvider.setFileMode(filename, targetMode);
+            File file = fileProvider.fetchFile(filename);
 
             return Optional.of(file);
 
@@ -65,27 +62,32 @@ public class SharedFileServer implements FileServer {
     @Override
     public void close(File closedFile) {
 
+        System.out.println("I READ: " + closedFile.read() );
         String filename = closedFile.filename();
 
-        if (files.get(filename) != null) {
+        if (fileProvider.doesFileExist(filename)) {
 
-            File file = files.get(filename);
-            System.out.println(file.filename());
+            File file = fileProvider.fetchFile(filename);
+
             if (file.mode().equals(Mode.READABLE) || file.mode().equals(Mode.READWRITEABLE)) {
 
+                System.out.println(locks);
                 unlockFile(filename, file.mode());
+                System.out.println(locks);
 
                 if (file.mode().equals(Mode.READWRITEABLE) && locks.get(filename).getCurrentReadCount() > 0) {
-                    manipulateModeOfFile(file, Mode.READABLE);
+                    fileProvider.setContent(file.filename(), closedFile.read());
+                    fileProvider.setFileMode(file.filename(), Mode.READABLE);
                 }
 
                 if ((file.mode().equals(Mode.READABLE) && locks.get(filename).getCurrentReadCount() < 1)) {
-                    manipulateModeOfFile(file, Mode.CLOSED);
+                    fileProvider.setFileMode(file.filename(), Mode.CLOSED);
                 }
 
                 if ((file.mode().equals(Mode.READWRITEABLE) && !locks.get(filename).isWriteSemaphoreLocked()
                         && locks.get(filename).getCurrentReadCount() <= 0)) {
-                    manipulateModeOfFile(file, Mode.CLOSED);
+                    fileProvider.setContent(file.filename(), closedFile.read());
+                    fileProvider.setFileMode(file.filename(), Mode.CLOSED);
                 }
 
             }
@@ -95,24 +97,18 @@ public class SharedFileServer implements FileServer {
 
     @Override
     public Mode fileStatus(String filename) {
-        if (files.containsKey(filename)) {
-            return files.get(filename).mode();
-        } else {
-            return Mode.UNKNOWN;
-        }
+        return fileProvider.getMode(filename);
     }
 
     @Override
     public Set<String> availableFiles() {
-        HashSet<String> availableFiles = new HashSet<>();
-        files.forEach((filename, file) -> {
-            availableFiles.add(filename);
-        });
-        return availableFiles;
+        return fileProvider.getAllAvailableFiles();
     }
 
 
     private void lockFile(String filename, Mode mode) {
+        System.out.println("lockfile");
+
         if (locks.containsKey(filename)) {
             FileLock lock = locks.get(filename);
 
@@ -133,12 +129,15 @@ public class SharedFileServer implements FileServer {
                     break;
             }
 
-            locks.remove(filename);
-            locks.put(filename, lock);
+            locks.replace(filename, lock);
+            System.out.println(locks);
+
         }
     }
 
     private void unlockFile(String filename, Mode mode) {
+        System.out.println("unlockFile");
+
         if (locks.containsKey(filename)) {
             FileLock lock = locks.get(filename);
 
@@ -159,19 +158,20 @@ public class SharedFileServer implements FileServer {
                     break;
             }
 
-            locks.remove(filename);
-            locks.put(filename, lock);
+            locks.replace(filename, lock);
         }
     }
 
     private void createLock(String filename) {
         FileLock lock = new FileLock();
         locks.put(filename, lock);
+        System.out.println(locks);
+
     }
 
-    private void manipulateModeOfFile(File file, Mode targetMode) {
-        files.remove(file.filename());
-        File newFile = new File(file.filename(), file.read(), targetMode);
-        files.put(file.filename(), newFile);
-    }
+//    private void manipulateModeOfFile(File file, Mode targetMode) {
+//        files.remove(file.filename());
+//        File newFile = new File(file.filename(), file.read(), targetMode);
+//        files.put(file.filename(), newFile);
+//    }
 }

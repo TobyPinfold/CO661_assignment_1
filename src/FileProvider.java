@@ -1,3 +1,4 @@
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -6,13 +7,7 @@ public class FileProvider {
     ConcurrentHashMap<String, Mode> modeMap = new ConcurrentHashMap<>();
     ConcurrentHashMap<String, String> contentMap = new ConcurrentHashMap<>();
 
-    private static final FileProvider instance = new FileProvider();
 
-    private FileProvider(){}
-
-    public static FileProvider getInstance(){
-        return instance;
-    }
 
     public void setFileMode(String filename, Mode targetMode) {
         if(modeMap.containsKey(filename)) {
@@ -50,5 +45,28 @@ public class FileProvider {
         return modeMap.containsKey(filename);
     }
 
+    public void createFile(String filename, String content) {
+        modeMap.put(filename, Mode.CLOSED);
+        contentMap.put(filename, content);
+    }
 
+    public File fetchFile(String filename) {
+        if(doesFileExist(filename)) {
+
+            Mode mode = modeMap.get(filename);
+            String content = contentMap.get(filename);
+
+            File file = new File(filename, content, mode);
+
+            return file;
+        } else {
+            return null;
+        }
+    }
+
+    public HashSet<String> getAllAvailableFiles() {
+        HashSet<String> availableFiles = new HashSet<>();
+        modeMap.forEach((k, v) -> availableFiles.add(k));
+        return availableFiles;
+    }
 }
