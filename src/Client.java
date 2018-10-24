@@ -12,9 +12,9 @@ public class Client implements Runnable {
 
         MyFileServer fileServer = new MyFileServer();
 
-        for(int fileNumber = 0; fileNumber < 10; fileNumber++){
+        for (int fileNumber = 0; fileNumber < 10; fileNumber++) {
             double randomNumber = Math.random();
-            fileServer.create("file:"+fileNumber, "number : " + randomNumber);
+            fileServer.create("file:" + fileNumber, "number : " + randomNumber);
         }
 
         new Thread(new Client(fileServer, "Bob")).start();
@@ -26,7 +26,7 @@ public class Client implements Runnable {
         new Thread(new Client(fileServer, "Chris")).start();
         new Thread(new Client(fileServer, "Liam")).start();
         new Thread(new Client(fileServer, "Bill")).start();
-         new Thread(new Client(fileServer, "Fred")).start();
+        new Thread(new Client(fileServer, "Fred")).start();
 
     }
 
@@ -39,60 +39,55 @@ public class Client implements Runnable {
     public void run() {
 
         Set<String> allFiles = fileServer.availableFiles();
-        int run = 0;
-        while(run < 100) {
-            int randomNumber = ThreadLocalRandom.current().nextInt(allFiles.size());
+        int randomNumber = ThreadLocalRandom.current().nextInt(allFiles.size());
 
-            int index = 0;
 
-            boolean isWriting = ThreadLocalRandom.current().nextInt(3) == 3;
+        boolean isWriting = ThreadLocalRandom.current().nextInt(2) == 1;
 
-            Optional<File> selectedFile = Optional.empty();
+        Optional<File> selectedFile = Optional.empty();
 
-            for (String filename : allFiles) {
-                if (index == randomNumber) {
-                    System.out.println(clientName + " opening file: " + filename);
-                    if(isWriting) {
-                        selectedFile = fileServer.open(filename, Mode.READWRITEABLE);
-                    } else {
-                        selectedFile = fileServer.open(filename, Mode.READABLE);
-                    }
-                    break;
+        int index = 0;
+        for (String filename : allFiles) {
+            if (index == randomNumber) {
+                System.out.println(clientName + " opening file: " + filename);
+                if (isWriting) {
+                    selectedFile = fileServer.open(filename, Mode.READWRITEABLE);
+                } else {
+                    selectedFile = fileServer.open(filename, Mode.READABLE);
                 }
-                index++;
+                break;
             }
+            index++;
+        }
 
-            if(isWriting) {
-                if (selectedFile.isPresent()) {
-                    File file = selectedFile.get();
-                    System.out.println(clientName + " writing to file: " + file.filename());
-                    file.write("Written by: " + this.clientName);
+        if (isWriting) {
+            if (selectedFile.isPresent()) {
+                File file = selectedFile.get();
+                System.out.println(clientName + " writing to file: " + file.filename());
+                file.write("Written by: " + this.clientName);
 
-                    System.out.println(clientName + " closing file: " + file.filename());
-                    fileServer.close(file);
+                System.out.println(clientName + " closing file: " + file.filename());
+                fileServer.close(file);
+            }
+        } else {
+            if (selectedFile.isPresent()) {
+                File file = selectedFile.get();
+                try {
+                    System.out.println(clientName + " reading file: " + file.filename());
+                    Thread.sleep(ThreadLocalRandom.current().nextInt(2) * 1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
-            } else {
-                if (selectedFile.isPresent()) {
-                    File file = selectedFile.get();
-                    try {
-                        System.out.println(clientName + " reading file: " + file.filename());
-                        Thread.sleep(ThreadLocalRandom.current().nextInt(2) * 1000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                    System.out.println(clientName + " closing file: " + file.filename());
-                    fileServer.close(file);
-                }
+                System.out.println(clientName + " closing file: " + file.filename());
+                fileServer.close(file);
             }
+        }
 
-            try {
-                System.out.println(clientName + " is waiting for a random amount of time");
-                Thread.sleep(ThreadLocalRandom.current().nextInt(4) * 1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-
-            run++;
+        try {
+            System.out.println(clientName + " is waiting for a random amount of time");
+            Thread.sleep(ThreadLocalRandom.current().nextInt(4) * 1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
 }
