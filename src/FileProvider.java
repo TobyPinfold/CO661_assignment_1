@@ -6,7 +6,7 @@ public class FileProvider {
     ConcurrentHashMap<String, Mode> modeMap = new ConcurrentHashMap<>();
     ConcurrentHashMap<String, String> contentMap = new ConcurrentHashMap<>();
 
-    public void setFileMode(String filename, Mode targetMode) {
+    public synchronized void setFileMode(String filename, Mode targetMode) {
         if(modeMap.containsKey(filename)) {
             modeMap.replace(filename, targetMode);
         } else {

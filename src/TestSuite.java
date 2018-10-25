@@ -8,7 +8,7 @@ public class TestSuite {
 
     public void tests() {
         int i = 0;
-        while(i < 5) {
+        while(i < 100) {
             describe("Test file creation and listing");
             testAvailableFiles();
 

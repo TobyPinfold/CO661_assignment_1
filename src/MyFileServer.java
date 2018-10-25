@@ -13,26 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *                                                                                                 *
  **-----------------------------------------------------------------------------------------------**
  *                                                                                                 *
- *  My Approach to this assignment, was to create a custom FileLock, that utilises synchronised    *
- *  blocks and semaphores. Each action (READ, READWRITE) has its own semaphore and lock Object     *
- *  The Semaphore is utilised to handle queued threads, whilst the lock object is used to          *
- *  synchronise its related threads (same action) to manage which threads get told to wait         *
- *  or be notified. While same requests are being received, ie (R, R, R, R) then they are all      *
- *  added to the read semaphore. As soon as a different request is received ie (R,R,R,R,W) then    *
- *  the requests are synchronised to the lock object and enter a wait state. This allows the       *
- *  remaining (R) requests (blocked) to finish that entered before the (W) but will ensure the     *
- *  (W) gets a change to write. Following the write, the unlock will determine whether to notify   *
- *  the (R) lock  or to allow other (W) requests to execute.                                       *
  *                                                                                                 *
- *  To avoid race conditions, between read and write requests I ensure mutual exclusion by         *
- *  synchronising on their respective lock objects I've created, this ensures only one request to  *
- *  acquire or release a lock can happen at a given time. Provided I am also instantiating the     *
- *  write semaphore with only 1 permit, it ensures only one write condition can execute at a time, *
- *  ensuring Mutual exclusion for all write operations. The solution is not entirely fair, as it   *
- *  is biased towards write conditions. The thinking here, being if you wanted to read, you would  *
- *  want the most up to date version. Subsequently in the event there was a continuous stream of   *
- *  (W) then it could starve an (R) until all (W) have finished. But given the probable desire to  *
- *  read the latest version then that should be fine.                                              *
  *                                                                                                 *
  **-----------------------------------------------------------------------------------------------**/
 
