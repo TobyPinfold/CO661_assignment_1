@@ -1,0 +1,12 @@
+
+OpenFile = ((ReadMode | ReadMode | ReadMode) + WriteMode);
+
+ReadMode = acquirePermit.read.'acquire.0;
+
+WriteMode = acquirePermit.acquirePermit.acquirePermit.write.'acquirePermit.'acquirePermit.'acquirePermit.0;
+
+Permit = 'acquirePermit.acquirePermit.Permit;
+
+Semaphore = Permit | Permit | Permit;
+
+
