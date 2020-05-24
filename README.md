@@ -1,4 +1,8 @@
-```/**-----------------------------------------------------------------------------------------------**
+ *** 
+This is a simple filesystem esque application that was used to practice and assess multithreading from a low level in Java, 
+Making use of locks, semaphores, mulitple threads. This example aims to demonstrate the use of FIFO along with semaphores to ensure fairness amongst the competeing threads.
+
+ ```/**-----------------------------------------------------------------------------------------------**
  *         ,-----.                                                                                 *
  *        '  .--./ ,---. ,--,--,  ,---.,--.,--.,--.--.,--.--. ,---. ,--,--,  ,---.,--. ,--.        *
  *        |  |    | .-. ||      \| .--'|  ||  ||  .--'|  .--'| .-. :|      \| .--' \  '  /         *
